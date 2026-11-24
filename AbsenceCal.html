@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Absence Cal</title>
+    <style>
+      body {
+        font-family: Tahoma, sans-serif;
+        background-color: #1a1a1a;
+        color: #eee;
+        max-width: 480px;
+        margin: 40px auto;
+        padding: 0 16px;
+      }
+      header {
+        text-align: center;
+        margin-bottom: 24px;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 22px;
+        color: #eee;
+      }
+      header p {
+        margin: 6px 0 0;
+        font-size: 14px;
+        color: #999;
+      }
+      form {
+        background-color: #232323;
+        border: 1px solid #3a3a3a;
+        border-radius: 10px;
+        padding: 20px;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      label {
+        font-size: 14px;
+        color: #ddd;
+      }
+      input[type="number"],
+      select {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 10px;
+        background-color: #333;
+        color: #eee;
+        border: 1px solid #444;
+        border-radius: 6px;
+      }
+      button {
+        width: 100%;
+        padding: 12px;
+        margin-top: 8px;
+        background-color: #3a3a3a;
+        color: #eee;
+        border: 1px solid #555;
+        border-radius: 6px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #444;
+      }
+      #result {
+        margin-top: 20px;
+        background-color: #232323;
+        border: 1px solid #3a3a3a;
+        border-radius: 10px;
+        padding: 16px;
+      }
+      #result p {
+        font-size: 16px;
+        color: #ddd;
+        margin: 8px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>حاسبة الغياب</h1>
+      <p>احسب نسبة غيابك وشوف وضعك في المقرر</p>
+    </header>
+    <form>
+      <div class="row">
+        <div class="field">
+          <label for="courseType">نوع المادة</label>
+          <select id="courseType">
+            <option value="both">نظري وعملي</option>
+            <option value="theory">نظري فقط</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="theorySessions">محاضرات النظري في الأسبوع</label>
+          <input type="number" id="theorySessions" value="2" />
+        </div>
+        <div class="field" id="labSessionsField">
+          <label for="labSessions">محاضرات العملي في الأسبوع</label>
+          <input type="number" id="labSessions" value="1" />
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="weeks">عدد اسابيع الدراسة</label>
+          <input type="number" id="weeks" value="16" />
+          <!--طبعا تم اختيار 16 لانه يعطي اقرب نتيجة وقد تختلف النتيجة عما يظهر في النظام بفارق بسيط-->
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="theoryExcused">غياب نظري بعذر</label>
+          <input type="number" id="theoryExcused" />
+        </div>
+        <div class="field">
+          <label for="theoryUnexcused">غياب نظري بغير عذر</label>
+          <input type="number" id="theoryUnexcused" />
+        </div>
+      </div>
+      <div class="row" id="labAbsenceRow">
+        <div class="field">
+          <label for="labExcused">غياب عملي بعذر</label>
+          <input type="number" id="labExcused" />
+        </div>
+        <div class="field">
+          <label for="labUnexcused">غياب عملي بغير عذر</label>
+          <input type="number" id="labUnexcused" />
+        </div>
+      </div>
+      <button type="button" id="calcButton">احسب</button>
+    </form>
+    <div id="result"></div>
+    <script>
+      const THEORY_MINUTES = 50; // مدة المحاضرة النظرية
+      const LAB_MINUTES = 110; // مدة المحاضرة العملية
+
+      const courseTypeSelect = document.getElementById("courseType");
+      const labSessionsField = document.getElementById("labSessionsField");
+      const labAbsenceRow = document.getElementById("labAbsenceRow");
+
+      // إذا المادة نظري فقط نخفي حقول العملي ونفرغها
+      function updateCourseType() {
+        const hasLab = courseTypeSelect.value === "both";
+        labSessionsField.style.display = hasLab ? "" : "none";
+        labAbsenceRow.style.display = hasLab ? "" : "none";
+        if (!hasLab) {
+          document.getElementById("labSessions").value = "";
+          document.getElementById("labExcused").value = "";
+          document.getElementById("labUnexcused").value = "";
+        }
+      }
+      courseTypeSelect.addEventListener("change", updateCourseType);
+      updateCourseType();
+
+      const calcButton = document.getElementById("calcButton");
+      calcButton.addEventListener("click", function () {
+        const hasLab = courseTypeSelect.value === "both";
+        const theorySessions = Number(
+          document.getElementById("theorySessions").value,
+        );
+        const labSessions = hasLab
+          ? Number(document.getElementById("labSessions").value)
+          : 0;
+        const weeks = Number(document.getElementById("weeks").value);
+        const totalMinutes =
+          weeks * (theorySessions * THEORY_MINUTES + labSessions * LAB_MINUTES);
+        if (totalMinutes <= 0) {
+          document.getElementById("result").textContent =
+            "عدد الأسابيع والمحاضرات لازم يكونون اكبر من صفر";
+          return;
+        }
+        const theoryExcused = Number(
+          document.getElementById("theoryExcused").value,
+        );
+        const theoryUnexcused = Number(
+          document.getElementById("theoryUnexcused").value,
+        );
+        const labExcused = hasLab
+          ? Number(document.getElementById("labExcused").value)
+          : 0;
+        const labUnexcused = hasLab
+          ? Number(document.getElementById("labUnexcused").value)
+          : 0;
+        const excusedMinutes =
+          theoryExcused * THEORY_MINUTES + labExcused * LAB_MINUTES;
+        const unexcusedMinutes =
+          theoryUnexcused * THEORY_MINUTES + labUnexcused * LAB_MINUTES;
+        const totalAbsenceMinutes = excusedMinutes + unexcusedMinutes;
+        const totalAbsenceCount =
+          theoryExcused + theoryUnexcused + labExcused + labUnexcused;
+        const totalPercentage = (totalAbsenceMinutes / totalMinutes) * 100;
+        const excusedPercentage = (excusedMinutes / totalMinutes) * 100;
+        const unexcusedPercentage = totalPercentage - excusedPercentage;
+        let state = "-";
+        if (totalPercentage > 30 || unexcusedPercentage > 25) {
+          state = "حرمان";
+        } else if (unexcusedPercentage >= 15) {
+          state = "إنذار ثاني";
+        } else if (unexcusedPercentage >= 10) {
+          state = "إنذار أول";
+        }
+
+        // المحاضرات المتبقية قبل الحرمان
+        const maxByUnexcused = 0.25 * totalMinutes - unexcusedMinutes;
+        const maxByTotal = 0.3 * totalMinutes - totalAbsenceMinutes;
+        const remainingMinutes = Math.max(
+          0,
+          Math.min(maxByUnexcused, maxByTotal),
+        );
+        const remainingTheory = Math.floor(remainingMinutes / THEORY_MINUTES);
+        const remainingLab = Math.floor(remainingMinutes / LAB_MINUTES);
+
+        const resultDiv = document.getElementById("result");
+        let stateLine = "";
+        if (state !== "-") {
+          stateLine = "<p>الحالة: " + state + "</p>";
+        }
+        let html = "<p>عدد الغيابات: " + totalAbsenceCount + "</p>";
+        html +=
+          "<p>نسبة الغياب بغير عذر: " +
+          unexcusedPercentage.toFixed(1) +
+          "%</p>";
+        html += "<p>النسبة الكلية: " + totalPercentage.toFixed(1) + "%</p>";
+        html += stateLine;
+        if (state !== "حرمان") {
+          if (hasLab) {
+            html +=
+              "<p>المتبقي قبل الحرمان: " +
+              remainingTheory +
+              " محاضرة نظري، أو " +
+              remainingLab +
+              " محاضرة عملي</p>";
+          } else {
+            html +=
+              "<p>المتبقي قبل الحرمان: " + remainingTheory + " محاضرة نظري</p>";
+          }
+        }
+        html +=
+          "<p><strong>ملاحظة: النتيجة تقديرية، وقد تختلف عن النظام بنسبة بسيطة.</strong></p>";
+
+        resultDiv.innerHTML = html;
+      });
+    </script>
+  </body>
+</html>
